@@ -92,8 +92,8 @@ export default function FastHeatMap({
     const offsetX = (dimensions.width - params.width * pixelsPerMeter) / 2;
     const offsetY = (dimensions.height - params.height * pixelsPerMeter) / 2;
 
-    // Low resolution for speed - 1 sample per meter
-    const samplesPerMeter = 1.5;
+    // Low resolution for speed - optimized for real-time interaction
+    const samplesPerMeter = 1.0;
     const sampleWidth = Math.ceil(params.width * samplesPerMeter);
     const sampleHeight = Math.ceil(params.height * samplesPerMeter);
 
