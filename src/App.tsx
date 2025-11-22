@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Hotel } from 'lucide-react';
-import OptimizedHeatMap from './components/OptimizedHeatMap';
+import FastHeatMap from './components/FastHeatMap';
 import FloatingControls from './components/FloatingControls';
 import CoverageStats from './components/CoverageStats';
 import { SimulationParams, AccessPoint } from './engine/rfPropagation';
@@ -131,8 +131,8 @@ function App() {
         </div>
       </div>
 
-      {/* Main Heat Map - Full Screen - OPTIMIZED */}
-      <OptimizedHeatMap
+      {/* Main Heat Map - Full Screen - FAST */}
+      <FastHeatMap
         params={simParams}
         onAPMove={handleAPMove}
         onAPAdd={handleAPAdd}
