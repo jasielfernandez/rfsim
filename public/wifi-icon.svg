@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <linearGradient id="wifiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d084;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00bfff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <path d="M5 12.55a11 11 0 0 1 14.08 0" stroke="url(#wifiGradient)" />
+  <path d="M1.42 9a16 16 0 0 1 21.16 0" stroke="url(#wifiGradient)" />
+  <path d="M8.53 16.11a6 6 0 0 1 6.95 0" stroke="url(#wifiGradient)" />
+  <circle cx="12" cy="20" r="1" fill="url(#wifiGradient)" />
+</svg>
