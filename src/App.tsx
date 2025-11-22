@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Hotel } from 'lucide-react';
-import AdvancedHeatMap from './components/AdvancedHeatMap';
+import OptimizedHeatMap from './components/OptimizedHeatMap';
 import FloatingControls from './components/FloatingControls';
 import CoverageStats from './components/CoverageStats';
-import { SimulationParams, AccessPoint, Obstacle } from './engine/rfPropagation';
+import { SimulationParams, AccessPoint } from './engine/rfPropagation';
+import { floorPlans } from './utils/floorPlans';
 
 function App() {
   // Simulation parameters
@@ -24,131 +25,49 @@ function App() {
   const [aps, setAPs] = useState<AccessPoint[]>([]);
   const [currentPreset, setCurrentPreset] = useState('suite');
 
-  // Generate obstacles based on scenario
-  const generateObstacles = (preset: string): Obstacle[] => {
-    const obstacles: Obstacle[] = [];
-
-    if (preset === 'standard-room') {
-      obstacles.push({
-        x: 8,
-        y: 0,
-        width: 0.2,
-        height: 4,
-        type: 'drywall'
-      });
-    } else if (preset === 'suite') {
-      // Large suite with multiple rooms
-      obstacles.push({
-        x: 5,
-        y: 0,
-        width: 0.2,
-        height: 8,
-        type: 'drywall'
-      });
-      obstacles.push({
-        x: 0,
-        y: 5,
-        width: 5,
-        height: 0.2,
-        type: 'drywall'
-      });
-      obstacles.push({
-        x: 8,
-        y: 0,
-        width: 0.2,
-        height: 4,
-        type: 'drywall'
-      });
-    } else if (preset === 'high-density') {
-      obstacles.push({
-        x: 6,
-        y: 2,
-        width: 0.3,
-        height: 0.3,
-        type: 'concrete'
-      });
-      obstacles.push({
-        x: 10,
-        y: 5,
-        width: 0.3,
-        height: 0.3,
-        type: 'concrete'
-      });
-    }
-
-    // Add obstacles based on slider
-    if (obstacleCount >= 2) {
-      obstacles.push({
-        x: 3,
-        y: 3,
-        width: 0.2,
-        height: 3,
-        type: 'drywall'
-      });
-    }
-    if (obstacleCount >= 3) {
-      obstacles.push({
-        x: 5,
-        y: 6,
-        width: 4,
-        height: 0.2,
-        type: 'concrete'
-      });
-    }
-
-    return obstacles;
-  };
-
-  // Load preset scenario
+  // Load preset scenario with realistic floor plans
   const loadPreset = (preset: string) => {
     setCurrentPreset(preset);
 
-    const baseAP = {
-      powerDbm,
-      frequencyGhz,
-      clientCount
-    };
+    // Map old presets to floor plan keys
+    const floorPlanKey = preset === 'high-density' ? 'conference-room' :
+                         preset === 'optimal' ? 'optimal-suite' : preset;
 
-    switch (preset) {
-      case 'standard-room':
-        setPowerDbm(23);
-        setFrequencyGhz(5);
-        setDeviceDensity(0.1);
-        setClientCount(4);
-        setObstacleCount(1);
-        setAPs([{ ...baseAP, x: 5, y: 3, powerDbm: 23, frequencyGhz: 5, clientCount: 4 }]);
-        break;
+    const floorPlan = floorPlans[floorPlanKey] || floorPlans['suite'];
 
-      case 'suite':
-        setPowerDbm(23);
-        setFrequencyGhz(5);
-        setDeviceDensity(0.15);
-        setClientCount(12);
-        setObstacleCount(2);
-        setAPs([{ ...baseAP, x: 3, y: 2, powerDbm: 23, frequencyGhz: 5, clientCount: 12 }]);
-        break;
+    // Load default AP locations from floor plan
+    const newAPs = floorPlan.defaultAPLocations.map(loc => ({
+      x: loc.x,
+      y: loc.y,
+      powerDbm: preset === 'optimal' || preset === 'optimal-suite' ? 20 : 23,
+      frequencyGhz: preset === 'high-density' || preset === 'conference-room' ? 2.4 : 5,
+      clientCount: preset === 'high-density' || preset === 'conference-room' ? 35 :
+                   (preset === 'suite' ? 12 : 4)
+    }));
 
-      case 'high-density':
-        setPowerDbm(23);
-        setFrequencyGhz(2.4);
-        setDeviceDensity(0.8);
-        setClientCount(35);
-        setObstacleCount(1);
-        setAPs([{ ...baseAP, x: 8, y: 4, powerDbm: 23, frequencyGhz: 2.4, clientCount: 35 }]);
-        break;
+    setAPs(newAPs);
 
-      case 'optimal':
-        setPowerDbm(20);
-        setFrequencyGhz(5);
-        setDeviceDensity(0.15);
-        setClientCount(12);
-        setObstacleCount(2);
-        setAPs([
-          { x: 3, y: 2, powerDbm: 20, frequencyGhz: 5, clientCount: 4 },
-          { x: 8, y: 2, powerDbm: 20, frequencyGhz: 5, clientCount: 4 },
-          { x: 5.5, y: 6, powerDbm: 20, frequencyGhz: 5, clientCount: 4 }
-        ]);
-        break;
+    // Set parameters based on scenario
+    if (preset === 'high-density' || preset === 'conference-room') {
+      setPowerDbm(23);
+      setFrequencyGhz(2.4);
+      setDeviceDensity(0.8);
+      setClientCount(35);
+    } else if (preset === 'suite') {
+      setPowerDbm(23);
+      setFrequencyGhz(5);
+      setDeviceDensity(0.15);
+      setClientCount(12);
+    } else if (preset === 'optimal' || preset === 'optimal-suite') {
+      setPowerDbm(20);
+      setFrequencyGhz(5);
+      setDeviceDensity(0.15);
+      setClientCount(12);
+    } else {
+      setPowerDbm(23);
+      setFrequencyGhz(5);
+      setDeviceDensity(0.1);
+      setClientCount(4);
     }
   };
 
@@ -182,18 +101,23 @@ function App() {
     setAPs(prev => prev.filter((_, i) => i !== apIndex));
   };
 
+  // Get current floor plan
+  const floorPlanKey = currentPreset === 'high-density' ? 'conference-room' :
+                       currentPreset === 'optimal' ? 'optimal-suite' : currentPreset;
+  const currentFloorPlan = floorPlans[floorPlanKey] || floorPlans['suite'];
+
   // Build simulation parameters
   const simParams: SimulationParams = {
     aps: aps.map(ap => ({
       ...ap,
-      powerDbm,      // Use current values
-      frequencyGhz,  // Use current values
-      clientCount    // Use current values (distributed among APs)
+      powerDbm,
+      frequencyGhz,
+      clientCount
     })),
-    obstacles: generateObstacles(currentPreset),
+    obstacles: currentFloorPlan.obstacles,
     deviceDensity,
-    width: currentPreset === 'suite' ? 12 : 14,
-    height: currentPreset === 'suite' ? 10 : 8
+    width: currentFloorPlan.width,
+    height: currentFloorPlan.height
   };
 
   return (
@@ -207,8 +131,8 @@ function App() {
         </div>
       </div>
 
-      {/* Main Heat Map - Full Screen */}
-      <AdvancedHeatMap
+      {/* Main Heat Map - Full Screen - OPTIMIZED */}
+      <OptimizedHeatMap
         params={simParams}
         onAPMove={handleAPMove}
         onAPAdd={handleAPAdd}

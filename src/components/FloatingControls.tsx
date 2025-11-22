@@ -79,7 +79,7 @@ export default function FloatingControls(props: FloatingControlsProps) {
                   }`}
                 >
                   <div className="font-medium text-sm">Standard Room</div>
-                  <div className="text-xs opacity-80">1 AP, typical load</div>
+                  <div className="text-xs opacity-80">320 sq ft - typical hotel room</div>
                 </button>
                 <button
                   onClick={() => props.onLoadPreset('suite')}
@@ -89,8 +89,8 @@ export default function FloatingControls(props: FloatingControlsProps) {
                       : 'bg-white/5 text-gray-300 hover:bg-white/10'
                   }`}
                 >
-                  <div className="font-medium text-sm">Suite Issue</div>
-                  <div className="text-xs opacity-80">1 AP, poor coverage</div>
+                  <div className="font-medium text-sm">⚠ Luxury Suite</div>
+                  <div className="text-xs opacity-80">600 sq ft - 1 AP poor coverage</div>
                 </button>
                 <button
                   onClick={() => props.onLoadPreset('high-density')}
@@ -100,8 +100,8 @@ export default function FloatingControls(props: FloatingControlsProps) {
                       : 'bg-white/5 text-gray-300 hover:bg-white/10'
                   }`}
                 >
-                  <div className="font-medium text-sm">Conference</div>
-                  <div className="text-xs opacity-80">High device density</div>
+                  <div className="font-medium text-sm">Conference Center</div>
+                  <div className="text-xs opacity-80">High density, movable walls</div>
                 </button>
                 <button
                   onClick={() => props.onLoadPreset('optimal')}
@@ -111,8 +111,8 @@ export default function FloatingControls(props: FloatingControlsProps) {
                       : 'bg-white/5 text-gray-300 hover:bg-white/10'
                   }`}
                 >
-                  <div className="font-medium text-sm">Optimal Design</div>
-                  <div className="text-xs opacity-80">Proper AP placement</div>
+                  <div className="font-medium text-sm">✓ Optimal Suite</div>
+                  <div className="text-xs opacity-80">Same suite, 3 APs properly placed</div>
                 </button>
               </div>
             )}
