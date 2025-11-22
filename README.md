@@ -93,29 +93,46 @@ The application will open at `http://localhost:3000`
 
 ## RF Propagation Model
 
+### Research-Based Implementation
+
+This visualization engine implements **physically accurate propagation models** based on academic research and international standards. See [RESEARCH.md](RESEARCH.md) for complete details and citations.
+
 ### Signal Strength Calculation
 
-The engine calculates received signal strength using:
+The engine uses the **ITU-R P.1238 log-distance path loss model** with multi-wall attenuation:
 
 ```
-RSSI = TX_Power - FSPL - Obstacle_Loss - Interference - Client_Load
+RSSI = P_tx - PL(d) - L_walls - L_interference - L_airtime
 ```
 
 Where:
-- **TX_Power**: Access point transmit power (dBm)
-- **FSPL**: Free Space Path Loss = 20×log₁₀(d) + 20×log₁₀(f) + 32.45
-- **Obstacle_Loss**: Sum of attenuation from walls/obstacles
-- **Interference**: Logarithmic impact from device density
-- **Client_Load**: Airtime contention from connected clients
+- **P_tx**: Access point transmit power (dBm)
+- **PL(d)**: ITU-R P.1238 log-distance path loss with measured exponents
+  - Formula: `PL(d) = PL(d₀) + 10×n×log₁₀(d/d₀) + Xσ`
+  - Path loss exponent (n): 2.83 @ 2.4GHz, 3.89 @ 5GHz (from IEEE measurements)
+- **L_walls**: Multi-wall attenuation (COST-231 model, frequency-dependent)
+- **L_interference**: Co-channel interference from device density
+- **L_airtime**: Airtime contention from connected clients
 
-### Obstacle Attenuation
+### Academic Sources
 
-| Material | Attenuation |
-|----------|-------------|
-| Drywall  | 3 dB        |
-| Glass    | 2 dB        |
-| Concrete | 8 dB        |
-| Metal    | 20 dB       |
+- **ITU-R P.1238-12**: International standard for indoor propagation (300 MHz - 450 GHz)
+- **IEEE 802.11 Measurements**: Empirical path loss exponents from university studies
+- **COST-231 Multi-Wall Model**: Industry-standard wall attenuation modeling
+- **Wi-Fi Vitae & iBwave**: Professional material attenuation measurements
+
+### Material Attenuation (Frequency-Dependent)
+
+Based on empirical measurements from Wi-Fi Vitae, iBwave, and NIST studies:
+
+| Material | 2.4 GHz | 5 GHz | Notes |
+|----------|---------|-------|-------|
+| Drywall  | 3.2 dB  | 3.8 dB | Standard gypsum construction |
+| Glass    | 2.8 dB  | 4.2 dB | Low-E glass can be much higher |
+| Concrete | 12.5 dB | 16.8 dB | 4" hollow block; 8" can reach 55 dB |
+| Metal    | 25.4 dB | 30.2 dB | Elevator shafts, steel beams |
+
+**Note**: 5 GHz experiences 20-40% more attenuation than 2.4 GHz through most materials.
 
 ### Signal Quality Thresholds
 
