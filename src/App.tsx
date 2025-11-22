@@ -19,7 +19,7 @@ function App() {
   const [showRulers, setShowRulers] = useState(true);
   const [showObstacles, setShowObstacles] = useState(true);
   const [showAPs, setShowAPs] = useState(true);
-  const [showStats, setShowStats] = useState(true);
+  const [showStats] = useState(true);
 
   // AP management
   const [aps, setAPs] = useState<AccessPoint[]>([]);

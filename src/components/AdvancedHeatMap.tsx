@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   calculateSignalStrength,
   getSignalColor,
@@ -30,7 +30,6 @@ export default function AdvancedHeatMap({
   params,
   onAPMove,
   onAPAdd,
-  onAPRemove,
   showAPs = true,
   showObstacles = true,
   showGrid = false,

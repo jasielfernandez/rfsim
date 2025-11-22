@@ -28,7 +28,6 @@ export default function OptimizedHeatMap({
   params,
   onAPMove,
   onAPAdd,
-  onAPRemove,
   showAPs = true,
   showObstacles = true,
   showGrid = false,

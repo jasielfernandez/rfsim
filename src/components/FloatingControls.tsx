@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
-  Settings, Signal, Radio, Users, Wifi, Layers,
-  ChevronDown, ChevronUp, Grid3x3, Ruler, Eye, EyeOff, Zap
+  Settings, Signal, Users,
+  ChevronDown, ChevronUp, Eye, Zap
 } from 'lucide-react';
 
 interface FloatingControlsProps {

@@ -28,7 +28,6 @@ export default function FastHeatMap({
   params,
   onAPMove,
   onAPAdd,
-  onAPRemove,
   showAPs = true,
   showObstacles = true,
   showGrid = false,
