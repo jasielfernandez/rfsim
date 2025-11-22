@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Presentation, Eye, EyeOff, Grid3x3, Hotel } from 'lucide-react';
-import HeatMap from './components/HeatMap';
-import ControlPanel from './components/ControlPanel';
+import { useState, useEffect } from 'react';
+import { Hotel } from 'lucide-react';
+import AdvancedHeatMap from './components/AdvancedHeatMap';
+import FloatingControls from './components/FloatingControls';
+import CoverageStats from './components/CoverageStats';
 import { SimulationParams, AccessPoint, Obstacle } from './engine/rfPropagation';
 
 function App() {
@@ -14,17 +15,20 @@ function App() {
 
   // UI state
   const [showGrid, setShowGrid] = useState(false);
+  const [showRulers, setShowRulers] = useState(true);
   const [showObstacles, setShowObstacles] = useState(true);
   const [showAPs, setShowAPs] = useState(true);
-  const [presentationMode, setPresentationMode] = useState(false);
+  const [showStats, setShowStats] = useState(true);
+
+  // AP management
+  const [aps, setAPs] = useState<AccessPoint[]>([]);
+  const [currentPreset, setCurrentPreset] = useState('suite');
 
   // Generate obstacles based on scenario
   const generateObstacles = (preset: string): Obstacle[] => {
     const obstacles: Obstacle[] = [];
 
     if (preset === 'standard-room') {
-      // Standard hotel room: ~30m² (5m x 6m)
-      // One interior wall (bathroom)
       obstacles.push({
         x: 8,
         y: 0,
@@ -33,8 +37,7 @@ function App() {
         type: 'drywall'
       });
     } else if (preset === 'suite') {
-      // Large suite: ~80m² (10m x 8m) with multiple rooms
-      // Living area separator
+      // Large suite with multiple rooms
       obstacles.push({
         x: 5,
         y: 0,
@@ -42,7 +45,6 @@ function App() {
         height: 8,
         type: 'drywall'
       });
-      // Bedroom wall
       obstacles.push({
         x: 0,
         y: 5,
@@ -50,7 +52,6 @@ function App() {
         height: 0.2,
         type: 'drywall'
       });
-      // Bathroom
       obstacles.push({
         x: 8,
         y: 0,
@@ -59,7 +60,6 @@ function App() {
         type: 'drywall'
       });
     } else if (preset === 'high-density') {
-      // Conference area with some pillars/walls
       obstacles.push({
         x: 6,
         y: 2,
@@ -99,75 +99,15 @@ function App() {
     return obstacles;
   };
 
-  // Generate APs based on scenario
-  const generateAPs = (preset: string): AccessPoint[] => {
-    if (preset === 'standard-room') {
-      return [{
-        x: 5,
-        y: 3,
-        powerDbm,
-        frequencyGhz,
-        clientCount
-      }];
-    } else if (preset === 'suite') {
-      // Single AP in large suite (demonstrates the problem!)
-      return [{
-        x: 3,
-        y: 2,
-        powerDbm,
-        frequencyGhz,
-        clientCount
-      }];
-    } else if (preset === 'high-density') {
-      // Conference area - single AP trying to serve too many people
-      return [{
-        x: 8,
-        y: 4,
-        powerDbm,
-        frequencyGhz,
-        clientCount: Math.max(clientCount, 30)
-      }];
-    } else if (preset === 'optimal') {
-      // Optimal design with multiple APs
-      return [
-        {
-          x: 3,
-          y: 2,
-          powerDbm: Math.min(powerDbm, 20), // Lower power to reduce overlap
-          frequencyGhz,
-          clientCount: Math.floor(clientCount / 3)
-        },
-        {
-          x: 8,
-          y: 2,
-          powerDbm: Math.min(powerDbm, 20),
-          frequencyGhz,
-          clientCount: Math.floor(clientCount / 3)
-        },
-        {
-          x: 5.5,
-          y: 6,
-          powerDbm: Math.min(powerDbm, 20),
-          frequencyGhz,
-          clientCount: Math.floor(clientCount / 3)
-        }
-      ];
-    }
+  // Load preset scenario
+  const loadPreset = (preset: string) => {
+    setCurrentPreset(preset);
 
-    // Default
-    return [{
-      x: 7,
-      y: 4,
+    const baseAP = {
       powerDbm,
       frequencyGhz,
       clientCount
-    }];
-  };
-
-  const [currentPreset, setCurrentPreset] = useState('suite');
-
-  const loadPreset = (preset: string) => {
-    setCurrentPreset(preset);
+    };
 
     switch (preset) {
       case 'standard-room':
@@ -176,35 +116,80 @@ function App() {
         setDeviceDensity(0.1);
         setClientCount(4);
         setObstacleCount(1);
+        setAPs([{ ...baseAP, x: 5, y: 3, powerDbm: 23, frequencyGhz: 5, clientCount: 4 }]);
         break;
+
       case 'suite':
-        // This demonstrates the problem!
         setPowerDbm(23);
-        setFrequencyGhz(5);
-        setDeviceDensity(0.15);
-        setClientCount(12); // Family with multiple devices
-        setObstacleCount(2);
-        break;
-      case 'high-density':
-        setPowerDbm(23);
-        setFrequencyGhz(2.4); // 2.4 for better range
-        setDeviceDensity(0.8); // Very high interference
-        setClientCount(35);
-        setObstacleCount(1);
-        break;
-      case 'optimal':
-        setPowerDbm(20); // Lower power, multiple APs
         setFrequencyGhz(5);
         setDeviceDensity(0.15);
         setClientCount(12);
         setObstacleCount(2);
+        setAPs([{ ...baseAP, x: 3, y: 2, powerDbm: 23, frequencyGhz: 5, clientCount: 12 }]);
+        break;
+
+      case 'high-density':
+        setPowerDbm(23);
+        setFrequencyGhz(2.4);
+        setDeviceDensity(0.8);
+        setClientCount(35);
+        setObstacleCount(1);
+        setAPs([{ ...baseAP, x: 8, y: 4, powerDbm: 23, frequencyGhz: 2.4, clientCount: 35 }]);
+        break;
+
+      case 'optimal':
+        setPowerDbm(20);
+        setFrequencyGhz(5);
+        setDeviceDensity(0.15);
+        setClientCount(12);
+        setObstacleCount(2);
+        setAPs([
+          { x: 3, y: 2, powerDbm: 20, frequencyGhz: 5, clientCount: 4 },
+          { x: 8, y: 2, powerDbm: 20, frequencyGhz: 5, clientCount: 4 },
+          { x: 5.5, y: 6, powerDbm: 20, frequencyGhz: 5, clientCount: 4 }
+        ]);
         break;
     }
   };
 
+  // Initialize with suite preset
+  useEffect(() => {
+    if (aps.length === 0) {
+      loadPreset('suite');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle AP movement
+  const handleAPMove = (apIndex: number, newX: number, newY: number) => {
+    setAPs(prev => prev.map((ap, i) =>
+      i === apIndex ? { ...ap, x: newX, y: newY } : ap
+    ));
+  };
+
+  // Handle AP addition
+  const handleAPAdd = (x: number, y: number) => {
+    setAPs(prev => [...prev, {
+      x,
+      y,
+      powerDbm,
+      frequencyGhz,
+      clientCount: Math.floor(clientCount / (prev.length + 1))
+    }]);
+  };
+
+  // Handle AP removal
+  const handleAPRemove = (apIndex: number) => {
+    setAPs(prev => prev.filter((_, i) => i !== apIndex));
+  };
+
   // Build simulation parameters
   const simParams: SimulationParams = {
-    aps: generateAPs(currentPreset),
+    aps: aps.map(ap => ({
+      ...ap,
+      powerDbm,      // Use current values
+      frequencyGhz,  // Use current values
+      clientCount    // Use current values (distributed among APs)
+    })),
     obstacles: generateObstacles(currentPreset),
     deviceDensity,
     width: currentPreset === 'suite' ? 12 : 14,
@@ -212,238 +197,87 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="glass-effect rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <Hotel className="w-8 h-8 text-blue-400" />
-                <h1 className="text-3xl font-bold text-white">
-                  WiFi Signal Quality Visualizer
-                </h1>
-              </div>
-              <p className="text-gray-300 mt-2">
-                Demonstrating RF propagation in hospitality environments
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPresentationMode(!presentationMode)}
-                className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${
-                  presentationMode
-                    ? 'bg-blue-500 text-white'
-                    : 'glass-effect-dark text-gray-300 hover:bg-white/10'
-                }`}
-              >
-                <Presentation className="w-4 h-4" />
-                {presentationMode ? 'Exit Presentation' : 'Presentation Mode'}
-              </button>
-            </div>
-          </div>
+    <div className="w-screen h-screen overflow-hidden bg-slate-950">
+      {/* Branding */}
+      <div className="fixed top-6 right-6 z-40 flex items-center gap-3 bg-slate-900/80 backdrop-blur-xl border border-white/20 rounded-xl px-4 py-3 shadow-2xl">
+        <Hotel className="w-6 h-6 text-blue-400" />
+        <div>
+          <div className="text-white font-semibold text-sm">RF Signal Visualizer</div>
+          <div className="text-gray-400 text-xs">Gaylord Opryland</div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Visualization */}
-          <div className="lg:col-span-2">
-            <div className="glass-effect rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white text-xl font-semibold">
-                  {currentPreset === 'suite' && '⚠ Suite Coverage Problem'}
-                  {currentPreset === 'standard-room' && 'Standard Room'}
-                  {currentPreset === 'high-density' && 'High-Density Conference Area'}
-                  {currentPreset === 'optimal' && '✓ Optimal Design'}
-                </h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowGrid(!showGrid)}
-                    className="px-3 py-1.5 rounded-lg glass-effect-dark hover:bg-white/10 transition-all flex items-center gap-2 text-sm text-gray-300"
-                  >
-                    <Grid3x3 className="w-4 h-4" />
-                    {showGrid ? 'Hide' : 'Show'} Grid
-                  </button>
-                  <button
-                    onClick={() => setShowObstacles(!showObstacles)}
-                    className="px-3 py-1.5 rounded-lg glass-effect-dark hover:bg-white/10 transition-all flex items-center gap-2 text-sm text-gray-300"
-                  >
-                    {showObstacles ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    Walls
-                  </button>
-                  <button
-                    onClick={() => setShowAPs(!showAPs)}
-                    className="px-3 py-1.5 rounded-lg glass-effect-dark hover:bg-white/10 transition-all flex items-center gap-2 text-sm text-gray-300"
-                  >
-                    {showAPs ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    APs
-                  </button>
-                </div>
-              </div>
+      {/* Main Heat Map - Full Screen */}
+      <AdvancedHeatMap
+        params={simParams}
+        onAPMove={handleAPMove}
+        onAPAdd={handleAPAdd}
+        onAPRemove={handleAPRemove}
+        showAPs={showAPs}
+        showObstacles={showObstacles}
+        showGrid={showGrid}
+        showRulers={showRulers}
+      />
 
-              <div className="flex justify-center items-center bg-black/30 rounded-lg p-4">
-                <HeatMap
-                  params={simParams}
-                  resolution={30}
-                  showAPs={showAPs}
-                  showObstacles={showObstacles}
-                  showGrid={showGrid}
-                />
-              </div>
+      {/* Floating Controls - Left */}
+      <FloatingControls
+        powerDbm={powerDbm}
+        setPowerDbm={setPowerDbm}
+        frequencyGhz={frequencyGhz}
+        setFrequencyGhz={setFrequencyGhz}
+        deviceDensity={deviceDensity}
+        setDeviceDensity={setDeviceDensity}
+        clientCount={clientCount}
+        setClientCount={setClientCount}
+        obstacleCount={obstacleCount}
+        setObstacleCount={setObstacleCount}
+        showGrid={showGrid}
+        setShowGrid={setShowGrid}
+        showRulers={showRulers}
+        setShowRulers={setShowRulers}
+        showAPs={showAPs}
+        setShowAPs={setShowAPs}
+        showObstacles={showObstacles}
+        setShowObstacles={setShowObstacles}
+        onLoadPreset={loadPreset}
+        currentPreset={currentPreset}
+      />
 
-              {/* Key insights for presentation */}
-              {presentationMode && currentPreset === 'suite' && (
-                <div className="mt-4 glass-effect-dark rounded-lg p-4 border-2 border-red-500/50">
-                  <h3 className="text-red-400 font-semibold mb-2 text-lg">
-                    ⚠ Critical Coverage Issue in Suites
-                  </h3>
-                  <ul className="text-gray-300 space-y-2 text-sm">
-                    <li>• Single AP cannot provide adequate coverage in large suites</li>
-                    <li>• Multiple interior walls cause significant signal attenuation</li>
-                    <li>• Guests in bedroom/far areas experience poor connectivity</li>
-                    <li>• VIP guests expect premium WiFi - this design fails to deliver</li>
-                    <li>
-                      <strong className="text-yellow-400">
-                        Recommendation: Install 2-3 APs per suite for proper coverage
-                      </strong>
-                    </li>
-                  </ul>
-                </div>
-              )}
-
-              {presentationMode && currentPreset === 'optimal' && (
-                <div className="mt-4 glass-effect-dark rounded-lg p-4 border-2 border-green-500/50">
-                  <h3 className="text-green-400 font-semibold mb-2 text-lg">
-                    ✓ Optimal Design Benefits
-                  </h3>
-                  <ul className="text-gray-300 space-y-2 text-sm">
-                    <li>• Multiple APs provide overlapping coverage</li>
-                    <li>• Lower power reduces co-channel interference</li>
-                    <li>• Client load distributed across APs</li>
-                    <li>• Consistent signal strength throughout space</li>
-                    <li>
-                      <strong className="text-green-400">
-                        Result: Superior guest experience and network reliability
-                      </strong>
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Controls */}
-          {!presentationMode && (
-            <div className="lg:col-span-1">
-              <ControlPanel
-                powerDbm={powerDbm}
-                setPowerDbm={setPowerDbm}
-                frequencyGhz={frequencyGhz}
-                setFrequencyGhz={setFrequencyGhz}
-                deviceDensity={deviceDensity}
-                setDeviceDensity={setDeviceDensity}
-                clientCount={clientCount}
-                setClientCount={setClientCount}
-                obstacleCount={obstacleCount}
-                setObstacleCount={setObstacleCount}
-                onLoadPreset={loadPreset}
-              />
-            </div>
-          )}
-
-          {/* Presentation Mode - Full width insights */}
-          {presentationMode && (
-            <div className="lg:col-span-1">
-              <div className="space-y-4">
-                {/* Quick scenario switcher */}
-                <div className="glass-effect rounded-xl p-4">
-                  <h3 className="text-white font-semibold mb-3">Switch Scenario</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => loadPreset('standard-room')}
-                      className={`px-3 py-2 rounded-lg text-sm ${
-                        currentPreset === 'standard-room'
-                          ? 'bg-blue-500 text-white'
-                          : 'glass-effect-dark text-gray-300 hover:bg-white/10'
-                      }`}
-                    >
-                      Standard Room
-                    </button>
-                    <button
-                      onClick={() => loadPreset('suite')}
-                      className={`px-3 py-2 rounded-lg text-sm ${
-                        currentPreset === 'suite'
-                          ? 'bg-red-500 text-white'
-                          : 'glass-effect-dark text-gray-300 hover:bg-white/10'
-                      }`}
-                    >
-                      Suite Issue
-                    </button>
-                    <button
-                      onClick={() => loadPreset('high-density')}
-                      className={`px-3 py-2 rounded-lg text-sm ${
-                        currentPreset === 'high-density'
-                          ? 'bg-yellow-500 text-white'
-                          : 'glass-effect-dark text-gray-300 hover:bg-white/10'
-                      }`}
-                    >
-                      Conference
-                    </button>
-                    <button
-                      onClick={() => loadPreset('optimal')}
-                      className={`px-3 py-2 rounded-lg text-sm ${
-                        currentPreset === 'optimal'
-                          ? 'bg-green-500 text-white'
-                          : 'glass-effect-dark text-gray-300 hover:bg-white/10'
-                      }`}
-                    >
-                      Optimal
-                    </button>
-                  </div>
-                </div>
-
-                {/* Signal quality reference */}
-                <div className="glass-effect rounded-xl p-4">
-                  <h3 className="text-white font-semibold mb-3">Signal Quality Standards</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#00d084' }}></div>
-                      <span className="text-gray-300 text-sm">Excellent (-50 dBm)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#7ed957' }}></div>
-                      <span className="text-gray-300 text-sm">Very Good (-60 dBm)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ffd700' }}></div>
-                      <span className="text-gray-300 text-sm font-semibold">
-                        Target: -65 dBm minimum
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ff9500' }}></div>
-                      <span className="text-gray-300 text-sm">Fair (-70 dBm)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ff4500' }}></div>
-                      <span className="text-gray-300 text-sm">Poor (-80 dBm)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+      {/* Coverage Stats - Top Right (below branding) */}
+      {showStats && (
+        <div className="fixed top-24 right-6 z-40 w-80">
+          <CoverageStats params={simParams} />
         </div>
-      </div>
+      )}
 
-      {/* Footer */}
-      <div className="max-w-7xl mx-auto mt-6">
-        <div className="glass-effect rounded-xl p-4">
-          <p className="text-gray-400 text-sm text-center">
-            RF Signal Quality Visualizer • Based on IEEE 802.11 standards and real-world propagation models
-          </p>
+      {/* Legend - Bottom Left */}
+      <div className="fixed bottom-6 left-6 z-40 bg-slate-900/90 backdrop-blur-xl border border-white/20 rounded-xl p-4 shadow-2xl">
+        <div className="text-white text-sm font-semibold mb-3">Signal Quality</div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-3 rounded" style={{ backgroundColor: '#00d084' }}></div>
+            <span className="text-gray-300 text-xs">Excellent (-50 dBm)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-3 rounded" style={{ backgroundColor: '#7ed957' }}></div>
+            <span className="text-gray-300 text-xs">Very Good (-60 dBm)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-3 rounded" style={{ backgroundColor: '#ffd700' }}></div>
+            <span className="text-gray-300 text-xs font-medium">Good (-65 dBm) Target</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-3 rounded" style={{ backgroundColor: '#ff9500' }}></div>
+            <span className="text-gray-300 text-xs">Fair (-70 dBm)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-3 rounded" style={{ backgroundColor: '#ff4500' }}></div>
+            <span className="text-gray-300 text-xs">Poor (-80 dBm)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-3 rounded" style={{ backgroundColor: '#8b0000' }}></div>
+            <span className="text-gray-300 text-xs">Unusable (&lt;-80 dBm)</span>
+          </div>
         </div>
       </div>
     </div>
